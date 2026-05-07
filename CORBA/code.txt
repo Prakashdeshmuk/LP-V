@@ -1,0 +1,93 @@
+Reverse.idl
+module ReverseModule {
+    interface Reverse {
+        string reverse_string(in string str);
+    };
+};
+
+create Reverse.idl file
+idlj -fall Reverse.idl
+javac  *.java ReverseModule/*.java
+orbd -ORBInitialPort 1050
+java ReverseServer -ORBInitialPort 1050 -ORBIntialHost localhost
+
+
+sudo update-configuration --config java
+
+--release 8
+
+java -cp path_of_mpj.jar_file flie.java
+MPJ_HOME=path_of_extracted_files path_mpjrun.sh_file -np 4 file
+
+ReverseServer.java
+import ReverseModule.*;
+import org.omg.CORBA.*;
+import org.omg.PortableServer.*;
+import org.omg.CosNaming.*;
+import org.omg.CosNaming.NamingContextPackage.*;
+
+class ReverseServer {
+    public static void main(String args[]) {
+        try {
+            ORB orb = ORB.init(args, null);
+
+            POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+            rootpoa.the_POAManager().activate();
+
+            ReverseImpl obj = new ReverseImpl();
+
+            org.omg.CORBA.Object ref = rootpoa.servant_to_reference(obj);
+            Reverse href = ReverseHelper.narrow(ref);
+
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService");
+            NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
+
+            ncRef.rebind(ncRef.to_name("Reverse"), href);
+
+            System.out.println("Server ready...");
+            orb.run();
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e);
+        }
+    }
+}
+
+ReverSeClient.java
+import ReverseModule.*;
+import org.omg.CORBA.*;
+import org.omg.CosNaming.*;
+import java.util.Scanner;
+
+class ReverseClient {
+    public static void main(String args[]) {
+        try {
+            ORB orb = ORB.init(args, null);
+
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService");
+            NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
+
+            Reverse obj = ReverseHelper.narrow(ncRef.resolve_str("Reverse"));
+
+            Scanner sc = new Scanner(System.in);
+            System.out.print("Enter string: ");
+            String input = sc.nextLine();
+
+            String result = obj.reverse_string(input);
+
+            System.out.println("Reversed string: " + result);
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e);
+        }
+    }
+}`
+
+ReverseImpl.java
+import ReverseModule.*;
+
+class ReverseImpl extends ReversePOA {
+    public String reverse_string(String str) {
+        return new StringBuilder(str).reverse().toString();
+    }
+}
